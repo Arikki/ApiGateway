@@ -1,0 +1,61 @@
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    hostname: localhost
+
+server:
+  port: 9191
+
+spring:
+  application:
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      routes:
+        - id: AUTH-SERVICE
+          uri: lb://AUTHSERVICE
+          predicates:
+            - Path=/login,/signup,/basicDetails/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: AUTH-SERVICE
+                fallbackuri: forward:/serviceFallBack
+        - id: CLAIM-SERVICE
+          uri: lb://CLAIMSERVICE
+          predicates:
+            - Path=/claims
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: CLAIM-SERVICE
+                fallbackuri: forward:/serviceFallBack
+        - id: PROFILE-SERVICE
+          uri: lb://PROFILESERVICE
+          predicates:
+            - Path=/profile/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: PROFILE-SERVICE
+                fallbackuri: forward:/serviceFallBack           
+
+
+hystrix:
+  command:
+    fallbackcmd:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 4000
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics
